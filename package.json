@@ -1,0 +1,14 @@
+{
+  "name": "daemonctrl",
+  "version": "0.0.1",
+  "description": "Command-line control your Node.js daemon",
+  "main": "ctrl.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/fastest963/daemonctrl.git"
+  },
+  "keywords": ["daemon", "command-line", "control", "ctrl"],
+  "author": "James Hartig <fastest963@gmail.com>",
+  "license": "MIT",
+  "readmeFilename": "README.md"
+}
