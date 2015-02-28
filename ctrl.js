@@ -172,11 +172,6 @@ ServerEmitter.listen = function(cb) {
             emitter.emit('clientError', err, socket);
         });
     });
-    process.on('exit', function() {
-        if (server) {
-            server.close();
-        }
-    });
     //add their callback first before we add any to re-fire on emitter
     if (typeof cb === 'function') {
         emitter.on('listening', cb);
