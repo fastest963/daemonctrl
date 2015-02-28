@@ -1,17 +1,48 @@
 var events = require('events'),
     util = require('util'),
     net = require('net'),
-    _ctrl;
+    child_process = require('child-process-debug'),
+    forkArgs,  _ctrl;
 global._daemonctrl = _ctrl = (global._daemonctrl || {});
 if (!_ctrl.socketOptions) {
     _ctrl.socketOptions = {path: './control.sock'};
 }
 
+function spawn() {
+    if (!_ctrl._spawnName) {
+        throw new Error('Missing moduleName. You must call spawn(moduleName) first');
+        return;
+    }
+    var args = getCommand(true).args,
+        i, child;
+    child = child_process.spawn(process.execPath, [_ctrl._spawnName].concat(args), {
+        //if we redirect the stdout to a pipe then when we die the parent throws a EPIPE
+        stdio: _ctrl._detachSpawn ? ['ignore', 'ignore', 'ignore'] : ['pipe', 'pipe', 2],
+        detached: _ctrl._detachSpawn
+    });
+    if (!child.pipe) {
+        if (!_ctrl._detachSpawn) {
+            child.pipe = child.stdout.pipe.bind(child.stdout);
+        } else {
+            child.pipe = function() {
+                throw new Error('Cannot pipe forked child without possibly breaking child. See README');
+            };
+        }
+    }
+    child.unref();
+    return child;
+}
+
 function getCommand(strip) {
-    if (_ctrl.command !== undefined) {
-        return _ctrl.command;
+    //if they call strip later still strip
+    if (_ctrl.command !== undefined && !strip) {
+        return {
+            args: forkArgs,
+            command: _ctrl.command
+        };
     }
     var i = 1, //skip over filename
+        args = [],
         command = '';
 
     //process.execPath is /usr/bin/node
@@ -22,8 +53,12 @@ function getCommand(strip) {
     }
     for (; i < process.argv.length && command === ''; i++) {
         switch (process.argv[i][0]) {
-            case '{':
-            case '-':
+            case '{': //if they sent json
+            case '-': //if its a flag
+                //don't pass through --fork, -fork, or --fork=yes
+                if (process.argv[i] !== '-fork' && process.argv[i] !== '--fork' && process.argv[i].indexOf('-fork=') === -1) {
+                    args.push(process.argv[i]);
+                }
                 break;
             default:
                 //everything else after we got the first part of the command is part of the command
@@ -35,8 +70,20 @@ function getCommand(strip) {
                 break;
         }
     }
+    //if we already ran and got a command, send it back
+    //they might've just called this via strip()
+    if (_ctrl.command) {
+        command = _ctrl.command;
+    }
     _ctrl.command = command;
-    return command;
+    if (!forkArgs) {
+        forkArgs = args;
+    }
+    return {
+        //args here means all the flags sent to the app that we need for forking
+        args: args,
+        command: command
+    };
 }
 
 function SendEmitter() {
@@ -44,12 +91,18 @@ function SendEmitter() {
 }
 util.inherits(SendEmitter, events.EventEmitter);
 SendEmitter.send = function(cb) {
-    var command = getCommand(),
+    var command = getCommand().command,
         closed = false,
         options = _ctrl.socketOptions,
         emitter, conn;
     if (!command || command === 'start') {
-        return;
+        if (_ctrl._spawnName !== undefined) {
+            emitter = spawn();
+            if (typeof cb === 'function') {
+                cb(emitter);
+            }
+        }
+        return emitter;
     }
     function onEnd() {
         if (closed) {
@@ -98,21 +151,21 @@ ServerEmitter.listen = function(cb) {
         emitter = new ServerEmitter(),
         options = _ctrl.socketOptions;
     server.on('connection', function(socket) {
-        var command = '';
+        var str = '';
         socket.setTimeout(5000, function() {
             socket.end();
         });
         socket.setEncoding('utf8');
         socket.on('data', function(data) {
-            command += data;
+            str += data;
         });
         //once we get a FIN then we know the sending side is done sending data
         socket.on('end', function() {
-            if (!command || !socket.writable) {
+            if (!str || !socket.writable) {
                 socket.end();
                 return;
             }
-            emitter.emit('command', command, socket);
+            emitter.emit('command', parts[0], parts.slice(1).join(' '), socket);
         });
         socket.on('error', function(err) {
             emitter.emit('clientError', err, socket);
@@ -158,7 +211,20 @@ function socketOptions(options) {
     return _ctrl.socketOptions;
 }
 
-exports.strip = getCommand.bind(this, true);
+//todo: support detaching
+function setSpawn(moduleName, detached) {
+    if (moduleName === false) {
+        _ctrl._spawnName = undefined;
+    } else if (moduleName !== undefined) {
+        _ctrl._spawnName = moduleName;
+    }
+    _ctrl._detachSpawn = !!detached;
+}
+
+exports.strip = function() {
+    return getCommand(true).command;
+};
 exports.socketOptions = socketOptions;
+exports.fork = setSpawn;
 exports.send = SendEmitter.send;
 exports.listen = ServerEmitter.listen;

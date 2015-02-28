@@ -1,8 +1,9 @@
 # daemonctrl #
 
-Control your daemon via the command line. A `command` is anything after the flags passed to a node script.
+Control your daemon via the command line. A `command` is the first word sent after the flags passed to a node script.
+The `commandArgs` is anything after the `command` and is not split on spaces.
 
-Example: `node send.js --flags [command]`
+Example: `node send.js --flags [command] [commandArgs]`
 
 ## Docs ##
 
@@ -15,18 +16,26 @@ Options are `path`, `ip`, `port`.
 ### send(endListener) ###
 Sends the command sent in the args to the daemon. `endListener` is added as a listner for `end` which fires when the
 command is sent.
-`send` can return `undefined` if no command was sent. See the Notes section for why. If this fires the `error` event
-with the code `ECONNREFUSED` then the daemon probably isn't running.
+`send` can return falsey if no command was sent (or `start` was sent and we're not spawning). See the Notes section
+for why. If this fires the `error` event with the code `ECONNREFUSED` then the daemon probably isn't running.
 
 To pipe the response back to another stream (like stdout) just run:
 ```
 daemonctrl.send().pipe(process.stdout);
 ```
 
+### fork(modulePath) ###
+Tells `send()` to fork when the `start` command is sent and return an instance of ChildProcess. The `endListener`
+is fired with a ChildProcess. If one of the arguments sent to the calling process is `-fork` or
+`--fork` we will **NOT* pass that to the forked child as a helper to prevent infinite forking.
+
 ### listen(listeningListener) ###
 This command is run from the daemon itself on start. When `listening` is fired you can start running your app.
 `listeningListener` is added as a listener for the `listening` event. If this fires the `error` event with the code 
 `EADDRINUSE` then the daemon is probably already running.
+
+The `command` event is fired when a command is received. The listeners are sent `(command, commandArgs, socket)`.
+You can respond to the sender by writing to the socket. You are **required** to `end` the socket. 
 
 Example:
 ```
@@ -54,5 +63,7 @@ daemonctrl.listen(function() {
     myApp.run();
 });
 ```
+
+When you p
 
 By [James Hartig](https://github.com/fastest963/)

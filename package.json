@@ -7,6 +7,9 @@
     "type": "git",
     "url": "git://github.com/fastest963/daemonctrl.git"
   },
+  "devDependencies": {
+    "child-process-debug": "^0.0.5"
+  },
   "keywords": ["daemon", "command-line", "control", "ctrl"],
   "author": "James Hartig <fastest963@gmail.com>",
   "license": "MIT",
