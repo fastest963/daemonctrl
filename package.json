@@ -1,13 +1,13 @@
 {
   "name": "daemonctrl",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Command-line control your Node.js daemon",
   "main": "ctrl.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/fastest963/daemonctrl.git"
   },
-  "devDependencies": {
+  "dependencies": {
     "child-process-debug": "^0.0.5"
   },
   "keywords": ["daemon", "command-line", "control", "ctrl"],
