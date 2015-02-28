@@ -22,6 +22,7 @@ function spawn() {
     if (!child.pipe) {
         if (!_ctrl._detachSpawn) {
             child.pipe = child.stdout.pipe.bind(child.stdout);
+            child_process.exitWithParent(child);
         } else {
             child.pipe = function() {
                 throw new Error('Cannot pipe forked child without possibly breaking child. See README');
