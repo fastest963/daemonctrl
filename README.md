@@ -43,6 +43,8 @@ daemonctrl.listen(function() {
     myApp.run();
 });
 ```
+### end() ###
+Stops listening. You should run this on SIGINT/exit.
 
 ## strip() ##
 Removes the command from `process.argv` if you use something that complains about invalid flags (like `node-flags`),
@@ -63,7 +65,5 @@ daemonctrl.listen(function() {
     myApp.run();
 });
 ```
-
-When you p
 
 By [James Hartig](https://github.com/fastest963/)

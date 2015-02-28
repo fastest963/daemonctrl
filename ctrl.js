@@ -2,7 +2,7 @@ var events = require('events'),
     util = require('util'),
     net = require('net'),
     child_process = require('child-process-debug'),
-    forkArgs,  _ctrl;
+    forkArgs,  _ctrl, _server;
 global._daemonctrl = _ctrl = (global._daemonctrl || {});
 if (!_ctrl.socketOptions) {
     _ctrl.socketOptions = {path: './control.sock'};
@@ -196,6 +196,11 @@ ServerEmitter.listen = function(cb) {
     _ctrl.server = emitter;
     return emitter;
 };
+ServerEmitter.end = function() {
+    if (_server) {
+        _server.close();
+    }
+};
 
 function socketOptions(options) {
     if (options !== undefined) {
@@ -228,3 +233,4 @@ exports.socketOptions = socketOptions;
 exports.fork = setSpawn;
 exports.send = SendEmitter.send;
 exports.listen = ServerEmitter.listen;
+exports.end = ServerEmitter.end;
