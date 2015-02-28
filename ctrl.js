@@ -11,10 +11,9 @@ if (!_ctrl.socketOptions) {
 function spawn() {
     if (!_ctrl._spawnName) {
         throw new Error('Missing moduleName. You must call spawn(moduleName) first');
-        return;
     }
     var args = getCommand(true).args,
-        i, child;
+        child;
     child = child_process.spawn(process.execPath, [_ctrl._spawnName].concat(args), {
         //if we redirect the stdout to a pipe then when we die the parent throws a EPIPE
         stdio: _ctrl._detachSpawn ? ['ignore', 'ignore', 'ignore'] : ['pipe', 'pipe', 2],
@@ -136,7 +135,7 @@ SendEmitter.send = function(cb) {
         conn.connect(options.path);
     }
     return emitter;
-}
+};
 
 function ServerEmitter() {
     events.EventEmitter.call(this);
@@ -165,6 +164,7 @@ ServerEmitter.listen = function(cb) {
                 socket.end();
                 return;
             }
+            var parts = str.split(' ');
             emitter.emit('command', parts[0], parts.slice(1).join(' '), socket);
         });
         socket.on('error', function(err) {
@@ -175,7 +175,7 @@ ServerEmitter.listen = function(cb) {
         if (server) {
             server.close();
         }
-    })
+    });
     //add their callback first before we add any to re-fire on emitter
     if (typeof cb === 'function') {
         emitter.on('listening', cb);
