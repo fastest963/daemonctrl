@@ -44,7 +44,7 @@ daemonctrl.listen(function() {
 });
 ```
 ### end() ###
-Stops listening. You should run this on SIGINT/exit.
+Stops listening. You should run this on process `SIGINT`, `SIGTERM`, and `exit`.
 
 ## strip() ##
 Removes the command from `process.argv` if you use something that complains about invalid flags (like `node-flags`),
