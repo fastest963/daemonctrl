@@ -58,6 +58,10 @@ var sender = daemonctrl.send();
 if (sender) {
     //send command to daemon
     sender.pipe(process.stdout);
+    //beforeExit gets called when the event-loop is exausted which means the socket closed
+    process.on('beforeExit', function() {
+        process.stdout.write("\n");
+    });
     return;
 }
 //running in the daemon since no command (or command was "start") was sent 
