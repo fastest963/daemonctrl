@@ -2,7 +2,7 @@ var events = require('events'),
     util = require('util'),
     net = require('net'),
     child_process = require('child-process-debug'),
-    forkArgs,  _ctrl, _server;
+    forkArgs,  _ctrl;
 global._daemonctrl = _ctrl = (global._daemonctrl || {});
 if (!_ctrl.socketOptions) {
     _ctrl.socketOptions = {path: './control.sock'};
@@ -119,7 +119,7 @@ SendEmitter.send = function(cb) {
     });
     //allow them to pipe the response
     emitter.pipe = conn.pipe.bind(conn);
-    conn.setTimeout(5000, function() {
+    conn.setTimeout(SendEmitter.timeout, function() {
         conn.destroy();
         emitter.emit('error', new Error('Timeout', 'TIMEOUT'));
     });
@@ -137,9 +137,17 @@ SendEmitter.send = function(cb) {
     }
     return emitter;
 };
+SendEmitter.timeout = 5000;
+SendEmitter.setTimeout = function(newTimeout) {
+    if (newTimeout !== undefined) {
+        SendEmitter.timeout = newTimeout || 0;
+    }
+    return SendEmitter.timeout;
+};
 
-function ServerEmitter() {
+function ServerEmitter(server) {
     events.EventEmitter.call(this);
+    this._server = server;
 }
 util.inherits(ServerEmitter, events.EventEmitter);
 ServerEmitter.listen = function(cb) {
@@ -148,11 +156,12 @@ ServerEmitter.listen = function(cb) {
     }
     //the calling side sends FIN when its done transmitting so we have to allow half open
     var server = net.createServer({allowHalfOpen: true}),
-        emitter = new ServerEmitter(),
+        emitter = new ServerEmitter(server),
         options = _ctrl.socketOptions;
     server.on('connection', function(socket) {
         var str = '';
-        socket.setTimeout(5000, function() {
+        //the sending end should be able to send us everything we need immediately so this timeout is short
+        socket.setTimeout(1000, function() {
             socket.end();
         });
         socket.setEncoding('utf8');
@@ -165,6 +174,8 @@ ServerEmitter.listen = function(cb) {
                 socket.end();
                 return;
             }
+            //clear the timeout now that we got all the data
+            socket.setTimeout(0);
             var parts = str.split(' ');
             emitter.emit('command', parts[0], parts.slice(1).join(' '), socket);
         });
@@ -192,9 +203,15 @@ ServerEmitter.listen = function(cb) {
     _ctrl.server = emitter;
     return emitter;
 };
+ServerEmitter.prototype.end = function() {
+    this._server.close();
+};
+ServerEmitter.prototype.close = function() {
+    this._server.close();
+};
 ServerEmitter.end = function() {
-    if (_server) {
-        _server.close();
+    if (_ctrl.server) {
+        _ctrl.server.close();
     }
 };
 
@@ -228,5 +245,6 @@ exports.strip = function() {
 exports.socketOptions = socketOptions;
 exports.fork = setSpawn;
 exports.send = SendEmitter.send;
+exports.timeout = SendEmitter.setTimeout;
 exports.listen = ServerEmitter.listen;
 exports.end = ServerEmitter.end;

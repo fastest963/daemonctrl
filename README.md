@@ -50,6 +50,10 @@ Stops listening. You should run this on process `SIGINT`, `SIGTERM`, and `exit`.
 Removes the command from `process.argv` if you use something that complains about invalid flags (like `node-flags`),
 run this first.
 
+## timeout(newTimeoutMS) ##
+Sets the timeout on the listening side for getting a response back from the server. Defaults to 5000. On timeout, the
+send emitter emits `error`.
+
 ## Notes ##
 
 If you want to use the same script for sending and starting you just need to check to see if send returned a falsey value.
