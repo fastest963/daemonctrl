@@ -1,6 +1,6 @@
 {
   "name": "daemonctrl",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Command-line control your Node.js daemon",
   "main": "ctrl.js",
   "repository": {
