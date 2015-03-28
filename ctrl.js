@@ -1,6 +1,7 @@
 var events = require('events'),
     util = require('util'),
     net = require('net'),
+    fs = require('fs'),
     child_process = require('child-process-debug'),
     forkArgs,  _ctrl;
 global._daemonctrl = _ctrl = (global._daemonctrl || {});
@@ -187,10 +188,25 @@ ServerEmitter.listen = function(cb) {
     if (typeof cb === 'function') {
         emitter.on('listening', cb);
     }
-    server.on('listening', function() {
+    function onListening() {
         emitter.emit('listening');
         //don't let this server stop us from dying
         server.unref();
+    }
+    server.on('listening', function() {
+        //check !options.port just like what we did for listen
+        if (!options.port && typeof options.mode === 'number') {
+            fs.chmod(options.path, options.mode, function(e) {
+                if (!e) {
+                    onListening();
+                    return;
+                }
+                emitter.emit('error', e);
+                server.close();
+            })
+        } else {
+            onListening();
+        }
     });
     server.on('error', function(err) {
         emitter.emit('error', err);
@@ -222,6 +238,9 @@ function socketOptions(options) {
         }
         if (options.port && !options.ip) {
             options.ip = '0.0.0.0';
+        }
+        if (options.mode && typeof options.mode !== 'number') {
+            throw new TypeError('mode requires a number');
         }
         _ctrl.socketOptions = options;
     }
