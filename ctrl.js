@@ -203,7 +203,7 @@ ServerEmitter.listen = function(cb) {
                 }
                 emitter.emit('error', e);
                 server.close();
-            })
+            });
         } else {
             onListening();
         }
